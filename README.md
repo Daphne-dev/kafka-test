@@ -18,10 +18,12 @@ docker compose up -d
 1. prometheus: 9090
 
 ### grafana dashboard
+
 1. node
-    - https://grafana.com/grafana/dashboards/11159-nodejs-application-dashboard/
+   - https://grafana.com/grafana/dashboards/11159-nodejs-application-dashboard/
 1. kafka
-    - https://grafana.com/grafana/dashboards/7589-kafka-exporter-overview/
+   - https://grafana.com/grafana/dashboards/7589-kafka-exporter-overview/
+   - 7년 된거라 그냥 참고용으로만 보시면 좋을 것 같습니다.
 
 # 미션
 
@@ -33,6 +35,6 @@ docker compose up -d
   - 사진으로 인증
 
 ### 제한 사항
+
 - docker desktop 설정은 메모리 16GB까지 허용
 - 이외 제한 없음
-
