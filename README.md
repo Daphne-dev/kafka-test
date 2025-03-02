@@ -37,4 +37,12 @@ docker compose up -d
 ### 제한 사항
 
 - docker desktop 설정은 메모리 16GB까지 허용
+- 데이터 형식은 아래를 따름
+  ```typescript
+  interface Message {
+    name: string; // 20자 미만 string
+    description: string; // 100자 이상, 1000자 미만의 string
+    price: number; // integer 범위의 숫자
+  }
+  ```
 - 이외 제한 없음
