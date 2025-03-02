@@ -25,7 +25,7 @@ docker compose up -d
 
 # 미션
 
-## kafka JS를 이용해서 초당 1만개 produce / consume에 성공하기
+## kafka JS를 이용해서 초당 1만개 produce / consume 시도하기
 
 ### 측정 방법
 
