@@ -22,5 +22,9 @@
   "packageManager": "pnpm@8.15.5",
   "engines": {
     "node": ">=22"
-  }
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ]
 }

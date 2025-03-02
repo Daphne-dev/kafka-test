@@ -47,7 +47,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - '3001:3000'
+      - '3003:3000'
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
@@ -153,6 +153,10 @@ services:
       - kafka1
       - kafka2
       - kafka3
+      - prometheus
+      - grafana
+      - consumer
+      - producer
     networks:
       - kafka-network
 

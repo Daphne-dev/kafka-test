@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
-
-import { LinksModule } from './links/links.module';
-
-import { AppService } from './app.service';
+import { PromClientModule } from '@repo/prometheus';
 import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
-  imports: [LinksModule],
+  imports: [PromClientModule],
   controllers: [AppController],
   providers: [AppService],
 })
