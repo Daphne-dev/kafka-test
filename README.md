@@ -1,34 +1,120 @@
-# 앱 구조
+# Turborepo starter
 
-## 시작
+This is a community-maintained example. If you experience a problem, please submit a pull request with a fix. GitHub Issues will be closed.
 
-### command
+## Using this example
+
+Run the following command:
 
 ```bash
-docker compose up -d
+npx create-turbo@latest -e with-nestjs
 ```
 
-### endpoints
+## What's inside?
 
-1. app: 3000
-1. kafka - broker: 9092
-1. kafka - ui: 9000
-1. grafana: 3001
+This Turborepo includes the following packages/apps:
 
+### Apps and Packages
 
-# 미션
+    .
+    ├── apps
+    │   ├── api                       # NestJS app (https://nestjs.com).
+    │   └── web                       # Next.js app (https://nextjs.org).
+    └── packages
+        ├── @repo/api                 # Shared `NestJS` resources.
+        ├── @repo/eslint-config       # `eslint` configurations (includes `prettier`)
+        ├── @repo/jest-config         # `jest` configurations
+        ├── @repo/typescript-config   # `tsconfig.json`s used throughout the monorepo
+        └── @repo/ui                  # Shareable stub React component library.
 
-## kafka JS를 이용해서 초당 1만개 produce / consume에 성공하기
+Each package and application are 100% [TypeScript](https://www.typescriptlang.org/) safe.
 
-### 측정 방법
+### Utilities
 
-- grafana dashboard의 초당 처리량 확인
-  - 사진으로 인증
+This `Turborepo` has some additional tools already set for you:
 
-### 제한 사항
+- [TypeScript](https://www.typescriptlang.org/) for static type-safety
+- [ESLint](https://eslint.org/) for code linting
+- [Prettier](https://prettier.io) for code formatting
+- [Jest](https://prettier.io) & [Playwright](https://playwright.dev/) for testing
 
-- redis는 3대까지 띄워도 됨
-- docker desktop 설정은 메모리 16GB까지 허용
-- kafka 설정, 대수는 제한 없음
-- 아키텍처, 앱 개수는 상관 없음
-- grafana 대시보드는 상관 없음
+### Commands
+
+This `Turborepo` already configured useful commands for all your apps and packages.
+
+#### Build
+
+```bash
+# Will build all the app & packages with the supported `build` script.
+pnpm run build
+
+# ℹ️ If you plan to only build apps individually,
+# Please make sure you've built the packages first.
+```
+
+#### Develop
+
+```bash
+# Will run the development server for all the app & packages with the supported `dev` script.
+pnpm run dev
+```
+
+#### test
+
+```bash
+# Will launch a test suites for all the app & packages with the supported `test` script.
+pnpm run test
+
+# You can launch e2e testes with `test:e2e`
+pnpm run test:e2e
+
+# See `@repo/jest-config` to customize the behavior.
+```
+
+#### Lint
+
+```bash
+# Will lint all the app & packages with the supported `lint` script.
+# See `@repo/eslint-config` to customize the behavior.
+pnpm run lint
+```
+
+#### Format
+
+```bash
+# Will format all the supported `.ts,.js,json,.tsx,.jsx` files.
+# See `@repo/eslint-config/prettier-base.js` to customize the behavior.
+pnpm format
+```
+
+### Remote Caching
+
+> [!TIP]
+> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+
+Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+
+By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+
+```bash
+npx turbo login
+```
+
+This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+
+Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+
+```bash
+npx turbo link
+```
+
+## Useful Links
+
+Learn more about the power of Turborepo:
+
+- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
+- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
+- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
+- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
+- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
+- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
