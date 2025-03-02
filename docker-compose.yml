@@ -160,6 +160,18 @@ services:
     networks:
       - kafka-network
 
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    environment:
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka1:9092,kafka2:9092,kafka39092
+      - DYNAMIC_CONFIG_ENABLED=true
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    ports:
+      - 9000:8080
+
 volumes:
   grafana-storage:
     driver: local
