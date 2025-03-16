@@ -2,9 +2,6 @@
   "extends": "@repo/typescript-config/nestjs.json",
   "compilerOptions": {
     "baseUrl": "./",
-    "outDir": "./dist",
-    "paths": {
-      "@repo/prometheus": ["../../packages/prometheus/src"]
-    }
+    "outDir": "./dist"
   }
 }
