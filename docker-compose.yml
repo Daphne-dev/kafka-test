@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   producer:
     build:
@@ -11,7 +9,7 @@ services:
       resources:
         limits:
           cpus: '2.0'
-          memory: 2048M
+          memory: 4096M
     volumes:
       - ./apps/producer/src:/app/apps/producer/src
     networks:
@@ -27,7 +25,7 @@ services:
       resources:
         limits:
           cpus: '2.0'
-          memory: 2048M
+          memory: 4096M
     volumes:
       - ./apps/consumer/src:/app/apps/consumer/src
     networks:
@@ -52,7 +50,8 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
     volumes:
-      - grafana-storage:/var/lib/grafana
+      - ./grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
     networks:
       - kafka-network
 
@@ -153,17 +152,13 @@ services:
       - kafka1
       - kafka2
       - kafka3
-      - prometheus
-      - grafana
-      - consumer
-      - producer
     networks:
       - kafka-network
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     environment:
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka1:9092,kafka2:9092,kafka39092
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka1:9092,kafka2:9092,kafka3:9092
       - DYNAMIC_CONFIG_ENABLED=true
     depends_on:
       - kafka1
@@ -171,14 +166,10 @@ services:
       - kafka3
     ports:
       - 9000:8080
+    networks:
+      - kafka-network
 
 volumes:
-  grafana-storage:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ./grafana
   kafka1-data:
     driver: local
   kafka2-data:
