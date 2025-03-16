@@ -75,7 +75,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     this.startLagMonitoring();
 
     await this.consumer.run({
-      partitionsConsumedConcurrently: 20, // 동시에 처리할 파티션 수 증가
+      partitionsConsumedConcurrently: 8, // 동시에 처리할 파티션 수 증가
       eachBatch: async (payload: EachBatchPayload) => {
         try {
           const batchStartTime = Date.now();

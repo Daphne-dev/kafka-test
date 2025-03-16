@@ -73,7 +73,7 @@ services:
       - ALLOW_PLAINTEXT_LISTENER=yes
       - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
       - BITNAMI_DEBUG=yes
-      - KAFKA_CFG_NUM_PARTITIONS=2
+      - KAFKA_CFG_NUM_PARTITIONS=8
       - KAFKA_KRAFT_CLUSTER_ID=LelM2dIFQkiUFVoi6f9Ndw
     networks:
       - kafka-network
@@ -99,7 +99,7 @@ services:
       - ALLOW_PLAINTEXT_LISTENER=yes
       - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
       - BITNAMI_DEBUG=yes
-      - KAFKA_CFG_NUM_PARTITIONS=2
+      - KAFKA_CFG_NUM_PARTITIONS=8
       - KAFKA_KRAFT_CLUSTER_ID=LelM2dIFQkiUFVoi6f9Ndw
     networks:
       - kafka-network
@@ -127,7 +127,7 @@ services:
       - ALLOW_PLAINTEXT_LISTENER=yes
       - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
       - BITNAMI_DEBUG=yes
-      - KAFKA_CFG_NUM_PARTITIONS=2
+      - KAFKA_CFG_NUM_PARTITIONS=8
       - KAFKA_KRAFT_CLUSTER_ID=LelM2dIFQkiUFVoi6f9Ndw
     networks:
       - kafka-network

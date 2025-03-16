@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Kafka, Producer, CompressionTypes, Partitioners } from 'kafkajs';
+import { Kafka, Producer, Partitioners } from 'kafkajs';
 import { Message } from '../interfaces/message.interface';
 import { Counter, Gauge, Histogram } from 'prom-client';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
@@ -10,10 +10,14 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   private readonly producer: Producer;
   private readonly topic = 'high-throughput-topic';
   private isProducing = false;
-  private messagesPerSecond = 10000; // 초당 10,000개 메시지
-  private batchSize = 2000; // 한 번에 보낼 메시지 수 증가
+  // 목표 처리량 설정
+  private targetMinThroughput = 10000; // 최소 초당 10,000개
+  private targetMaxThroughput = 11000; // 최대 초당 11,000개
+  private batchSize = 1000; // 더 작은 배치 크기로 조정
+  private batchCount = 2; // 더 적은 병렬 배치로 조정
   private messageCount = 0;
   private startTime: number;
+  private lastBatchTime: number;
 
   constructor(
     @InjectMetric('kafka_producer_messages_total')
@@ -59,11 +63,9 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     this.messageCount = 0;
     this.startTime = Date.now();
 
-    console.log(
-      `Starting to produce ${this.messagesPerSecond} messages per second`,
-    );
+    console.log(`Starting to produce messages at maximum throughput`);
 
-    // 메시지 생성 및 전송 루프
+    // 단일 프로듀서 루프 시작 (최대 속도로 실행)
     this.produceMessages();
   }
 
@@ -86,17 +88,17 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const batchStartTime = Date.now();
+      this.lastBatchTime = batchStartTime;
 
       // 여러 배치를 병렬로 전송
-      const batchCount = 5; // 병렬 배치 수
       const promises = [];
 
-      for (let i = 0; i < batchCount; i++) {
+      for (let i = 0; i < this.batchCount; i++) {
         const messages = this.generateMessages(this.batchSize);
         promises.push(
           this.producer.send({
             topic: this.topic,
-            compression: CompressionTypes.GZIP,
+            // compression: CompressionTypes.GZIP,
             messages: messages,
           }),
         );
@@ -111,7 +113,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
         processingTimeInSeconds,
       );
 
-      const batchTotalSize = this.batchSize * batchCount;
+      const batchTotalSize = this.batchSize * this.batchCount;
       this.messageCount += batchTotalSize;
 
       // Prometheus 메트릭 업데이트
@@ -122,25 +124,39 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       const currentThroughput = this.messageCount / elapsedSeconds;
       this.throughputGauge.set(currentThroughput);
 
-      // 초당 메시지 수를 맞추기 위한 타이밍 계산
-      const batchesPerSecond =
-        this.messagesPerSecond / (this.batchSize * batchCount);
-      const intervalMs = 1000 / batchesPerSecond;
+      // 목표 처리량에 맞게 지연 시간 조정
+      let intervalMs = 100; // 기본 간격
+
+      if (currentThroughput > this.targetMaxThroughput) {
+        // 처리량이 너무 높으면 지연 시간 증가
+        intervalMs = 200;
+      } else if (currentThroughput < this.targetMinThroughput) {
+        // 처리량이 너무 낮으면 지연 시간 감소
+        intervalMs = 50;
+      }
 
       // 다음 배치 전송 예약
       setTimeout(() => this.produceMessages(), intervalMs);
 
-      // 로그 출력 (1초마다)
-      if (
-        this.messageCount % this.messagesPerSecond === 0 ||
-        this.messageCount % (this.batchSize * batchCount) === 0
-      ) {
+      // 로그 출력 (배치마다)
+      if (this.messageCount % (this.batchSize * this.batchCount * 5) === 0) {
         console.log(
           `Produced ${this.messageCount} messages in ${elapsedSeconds.toFixed(2)} seconds`,
         );
         console.log(
-          `Current throughput: ${currentThroughput.toFixed(2)} messages/second`,
+          `Current throughput: ${currentThroughput.toFixed(2)} messages/second (Target: 10,000-11,000)`,
         );
+        // 목표 달성 여부 표시
+        if (
+          currentThroughput >= this.targetMinThroughput &&
+          currentThroughput <= this.targetMaxThroughput
+        ) {
+          console.log('✅ Target throughput achieved!');
+        } else if (currentThroughput > this.targetMaxThroughput) {
+          console.log('⚠️ Throughput too high, adjusting...');
+        } else {
+          console.log('⚠️ Throughput too low, adjusting...');
+        }
       }
     } catch (error) {
       console.error('Error producing messages:', error);
