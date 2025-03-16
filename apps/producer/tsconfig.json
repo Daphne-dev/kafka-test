@@ -3,5 +3,8 @@
   "compilerOptions": {
     "baseUrl": "./",
     "outDir": "./dist",
+    "paths": {
+      "@repo/prometheus": ["../../packages/prometheus/src"]
+    }
   }
 }

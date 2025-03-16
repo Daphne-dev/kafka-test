@@ -22,6 +22,9 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@repo/prometheus": "workspace:^",
+    "@willsoto/nestjs-prometheus": "^6.0.2",
+    "kafkajs": "^2.2.4",
+    "prom-client": "^14.2.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
