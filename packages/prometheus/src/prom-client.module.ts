@@ -1,11 +1,12 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { PromClientController } from './prom-client.controller';
 import { PromClientService } from './prom-client.service';
+import { KafkaMetricsService } from './kafka-metrics.service';
 
 @Module({
-  providers: [PromClientService],
+  providers: [PromClientService, KafkaMetricsService],
   controllers: [PromClientController],
-  exports: [PromClientService],
+  exports: [PromClientService, KafkaMetricsService],
 })
 export class PromClientModule implements OnModuleInit {
   constructor(private readonly promClientService: PromClientService) {}
