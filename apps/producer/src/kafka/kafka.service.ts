@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Kafka, Producer, CompressionTypes, Partitioners } from 'kafkajs';
 import { Message } from '../interfaces/message.interface';
-import { Counter, Gauge } from 'prom-client';
+import { Counter, Gauge, Histogram } from 'prom-client';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 
 @Injectable()
@@ -20,6 +20,8 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     private readonly messageCounter: Counter<string>,
     @InjectMetric('kafka_producer_throughput')
     private readonly throughputGauge: Gauge<string>,
+    @InjectMetric('kafka_message_processing_time_seconds')
+    private readonly processingTimeHistogram: Histogram<string>,
   ) {
     this.kafka = new Kafka({
       clientId: 'high-throughput-producer',
@@ -83,6 +85,8 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     if (!this.isProducing) return;
 
     try {
+      const batchStartTime = Date.now();
+
       // 여러 배치를 병렬로 전송
       const batchCount = 5; // 병렬 배치 수
       const promises = [];
@@ -92,13 +96,20 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
         promises.push(
           this.producer.send({
             topic: this.topic,
-            compression: CompressionTypes.LZ4,
+            compression: CompressionTypes.GZIP,
             messages: messages,
           }),
         );
       }
 
       await Promise.all(promises);
+
+      // 처리 시간 측정 및 히스토그램에 기록
+      const processingTimeInSeconds = (Date.now() - batchStartTime) / 1000;
+      this.processingTimeHistogram.observe(
+        { operation: 'produce', topic: this.topic },
+        processingTimeInSeconds,
+      );
 
       const batchTotalSize = this.batchSize * batchCount;
       this.messageCount += batchTotalSize;
@@ -136,23 +147,6 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       // 오류 발생 시 잠시 대기 후 재시도
       setTimeout(() => this.produceMessages(), 1000);
     }
-  }
-
-  private async sendMessageBatch(batchCount: number) {
-    const batchPromises = Array.from({ length: batchCount }, () =>
-      this.producer.send({
-        topic: this.topic,
-        compression: CompressionTypes.LZ4,
-        messages: this.generateMessages(this.batchSize),
-      }),
-    );
-
-    await Promise.all(batchPromises);
-
-    // 처리된 메시지 수 업데이트
-    const batchTotalSize = this.batchSize * batchCount;
-    this.messageCount += batchTotalSize;
-    this.messageCounter.inc(batchTotalSize);
   }
 
   private generateMessages(count: number) {

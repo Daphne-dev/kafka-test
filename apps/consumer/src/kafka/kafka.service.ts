@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Kafka, Consumer, EachMessagePayload, EachBatchPayload } from 'kafkajs';
+import { Kafka, Consumer, EachBatchPayload } from 'kafkajs';
 import { Message } from '../interfaces/message.interface';
-import { Counter, Gauge } from 'prom-client';
+import { Counter, Gauge, Histogram } from 'prom-client';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 
 @Injectable()
@@ -20,6 +20,10 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     private readonly messageCounter: Counter<string>,
     @InjectMetric('kafka_consumer_throughput')
     private readonly throughputGauge: Gauge<string>,
+    @InjectMetric('kafka_message_processing_time_seconds')
+    private readonly processingTimeHistogram: Histogram<string>,
+    @InjectMetric('kafka_consumer_lag')
+    private readonly lagGauge: Gauge<string>,
   ) {
     this.kafka = new Kafka({
       clientId: 'high-throughput-consumer',
@@ -68,10 +72,13 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       fromBeginning: false,
     });
 
+    this.startLagMonitoring();
+
     await this.consumer.run({
       partitionsConsumedConcurrently: 20, // 동시에 처리할 파티션 수 증가
       eachBatch: async (payload: EachBatchPayload) => {
         try {
+          const batchStartTime = Date.now();
           const { batch, isRunning, resolveOffset, heartbeat } = payload;
           const { messages } = batch;
 
@@ -97,6 +104,13 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
 
           // Prometheus 메트릭 업데이트
           this.messageCounter.inc(messages.length);
+
+          // 처리 시간 측정 및 히스토그램에 기록
+          const processingTimeInSeconds = (Date.now() - batchStartTime) / 1000;
+          this.processingTimeHistogram.observe(
+            { operation: 'consume', topic: this.topic },
+            processingTimeInSeconds,
+          );
 
           // 하트비트 전송
           await heartbeat();
@@ -144,6 +158,9 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
 
     // 메트릭 업데이트 중지
     this.throughputGauge.set(0);
+
+    // 지연(lag) 메트릭 초기화
+    this.lagGauge.reset();
   }
 
   getStats() {
@@ -163,5 +180,69 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       elapsedSeconds: parseFloat(elapsedSeconds.toFixed(2)),
       throughput: parseFloat((this.messageCount / elapsedSeconds).toFixed(2)),
     };
+  }
+
+  private async startLagMonitoring() {
+    // 10초마다 컨슈머 지연 업데이트
+    const lagMonitoringInterval = setInterval(async () => {
+      if (!this.isConsuming) {
+        clearInterval(lagMonitoringInterval);
+        return;
+      }
+
+      try {
+        // 토픽의 최신 오프셋 가져오기
+        const admin = this.kafka.admin();
+        await admin.connect();
+
+        const topicOffsets = await admin.fetchTopicOffsets(this.topic);
+
+        // 컨슈머 그룹의 현재 오프셋 가져오기
+        const consumerOffsetsResponse = await admin.fetchOffsets({
+          groupId: this.groupId,
+          topics: [this.topic],
+        });
+
+        // 해당 토픽의 오프셋 정보 찾기
+        const topicOffsetInfo = consumerOffsetsResponse.find(
+          (item) => item.topic === this.topic,
+        );
+
+        if (topicOffsetInfo) {
+          // 각 파티션별 지연(lag) 계산 및 메트릭 업데이트
+          for (const topicOffset of topicOffsets) {
+            const partition = topicOffset.partition;
+            const latestOffset = parseInt(topicOffset.offset);
+
+            // 해당 파티션의 컨슈머 오프셋 찾기
+            const consumerPartitionOffset = topicOffsetInfo.partitions.find(
+              (p) => p.partition === partition,
+            );
+
+            if (consumerPartitionOffset) {
+              const currentOffset = parseInt(consumerPartitionOffset.offset);
+              const lag = latestOffset - currentOffset;
+
+              // 지연(lag) 메트릭 업데이트
+              this.lagGauge.set(
+                {
+                  topic: this.topic,
+                  groupId: this.groupId,
+                  partition: partition.toString(),
+                },
+                lag,
+              );
+
+              // 로그에 지연 정보 출력 (디버깅용)
+              console.log(`Partition ${partition} lag: ${lag} messages`);
+            }
+          }
+        }
+
+        await admin.disconnect();
+      } catch (error) {
+        console.error('Error monitoring consumer lag:', error);
+      }
+    }, 10000); // 10초마다 실행
   }
 }
